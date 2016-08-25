@@ -44,6 +44,12 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 - refreshmod: Refresh list of modules for allmod/gomod/pathmod/outmod/installmod.
 - syswrite:   Remount partitions (e.g. system.img) as writable, rebooting if necessary.
 
+EOF
+
+    __print_custom_functions_help
+
+cat <<EOF
+
 Environment options:
 - SANITIZE_HOST: Set to 'address' to use ASAN for all host modules.
 - ANDROID_QUIET_BUILD: set to 'true' to display only the essential messages.
@@ -53,7 +59,7 @@ EOF
     local T=$(gettop)
     local A=""
     local i
-    for i in `cat $T/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
+    for i in `cat $T/build/envsetup.sh $T/vendor/lighthouse/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
       A="$A $i"
     done
     echo $A
@@ -64,8 +70,8 @@ function build_build_var_cache()
 {
     local T=$(gettop)
     # Grep out the variable names from the script.
-    cached_vars=(`cat $T/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
-    cached_abs_vars=(`cat $T/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_vars=(`cat $T/build/envsetup.sh $T/vendor/lighthouse/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_abs_vars=(`cat $T/build/envsetup.sh $T/vendor/lighthouse/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
     # Call the build system to dump the "<val>=<value>" pairs as a shell script.
     build_dicts_script=`\builtin cd $T; build/soong/soong_ui.bash --dumpvars-mode \
                         --vars="${cached_vars[*]}" \
@@ -491,7 +497,7 @@ function chooseproduct()
     if [ "x$TARGET_PRODUCT" != x ] ; then
         default_value=$TARGET_PRODUCT
     else
-        default_value=aosp_arm
+        default_value=lighthouse_arm
     fi
 
     export TARGET_BUILD_APPS=
@@ -651,7 +657,7 @@ function lunch()
         answer=$1
     else
         print_lunch_menu
-        echo -n "Which would you like? [aosp_arm-eng] "
+        echo -n "Which would you like? [lighthouse_arm-eng] "
         read answer
     fi
 
@@ -659,7 +665,7 @@ function lunch()
 
     if [ -z "$answer" ]
     then
-        selection=aosp_arm-eng
+        selection=lighthouse_arm-eng
     elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$")
     then
         local choices=($(TARGET_BUILD_APPS= get_build_var COMMON_LUNCH_CHOICES))
@@ -765,11 +771,11 @@ function tapas()
         return
     fi
 
-    local product=aosp_arm
+    local product=lighthouse_arm
     case $arch in
-      x86)    product=aosp_x86;;
-      arm64)  product=aosp_arm64;;
-      x86_64) product=aosp_x86_64;;
+      x86)    product=lighthouse_x86;;
+      arm64)  product=lighthouse_arm64;;
+      x86_64) product=lighthouse_x86_64;;
     esac
     if [ -z "$variant" ]; then
         variant=eng
@@ -1847,3 +1853,5 @@ source_vendorsetup
 addcompletions
 
 export ANDROID_BUILD_TOP=$(gettop)
+
+. $ANDROID_BUILD_TOP/vendor/lighthouse/build/envsetup.sh
